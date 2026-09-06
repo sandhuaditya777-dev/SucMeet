@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+  # ─── MongoDB ──────────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7
+    container_name: sucmeet-mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: sucmeet
+
+  # ─── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: sucmeet-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+  # ─── LiveKit Server ───────────────────────────────────────────────────────────
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: sucmeet-livekit
+    command: --dev --bind 0.0.0.0
+    restart: unless-stopped
+    ports:
+      - '7880:7880'   # HTTP API & WebSocket
+      - '7881:7881'   # RTC TCP
+      - '50100-50200:50100-50200/udp'  # RTC UDP
+    environment:
+      LIVEKIT_KEYS: 'devkey: secret'
+
+  # ─── MinIO (S3-compatible storage for recordings) ─────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: sucmeet-minio
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    ports:
+      - '9000:9000'   # API
+      - '9001:9001'   # Console
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+
+volumes:
+  mongo_data:
+  redis_data:
+  minio_data:
